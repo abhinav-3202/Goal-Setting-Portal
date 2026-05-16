@@ -2,7 +2,7 @@ import { NextAuthOptions } from "next-auth";  // for Type safety , we are tellin
 import CredentialsProvider from "next-auth/providers/credentials";  //  this enables email/password login instead of google/github...this is for custom login
 import bcrypt from "bcryptjs";
 import dbConnect from "../../../../lib/dbConnect";
-import UserModel from "../../../../models/User";
+import { UserModel } from "@/src/models/User";
 import GoogleProvider from 'next-auth/providers/google'
 
 // This file configures NextAuth.

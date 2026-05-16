@@ -17,4 +17,4 @@ const UserSchema = new Schema<IUser>({
   department: { type: String, required: true }
 }, { timestamps: true });
 
-export const User = mongoose.models.User || model<IUser>('User', UserSchema);
+export const UserModel = mongoose.models.User || model<IUser>('User', UserSchema);

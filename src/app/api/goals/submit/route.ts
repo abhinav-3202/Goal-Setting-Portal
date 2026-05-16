@@ -1,6 +1,6 @@
 import { Goal } from "@/src/models/Goal";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/src/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/src/app/api/auth/[...nextauth]/option";
 import dbConnect from "@/src/lib/dbConnect";
 
 export async function POST(request: Request) {

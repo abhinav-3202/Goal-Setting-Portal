@@ -1,6 +1,6 @@
-import { User } from "@/src/models/User";
+import { UserModel } from "@/src/models/User";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/src/app/api/auth/[...nextauth]/route"; // Adjust path based on your authOptions location
+import { authOptions } from "@/src/app/api/auth/[...nextauth]/option"; // Adjust path based on your authOptions location
 import dbConnect from "@/src/lib/dbConnect";
 
 export async function GET(request: Request) {
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
 
         // 4. Fetch Users
         // Using .select() to only return necessary frontend details, keeping the query fast
-        const users = await User.find(query)
+        const users = await UserModel.find(query)
             .select("name email department role") 
             .sort({ name: 1 }); // Alphabetical sort
 

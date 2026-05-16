@@ -1,7 +1,7 @@
 import { Goal } from "@/src/models/Goal";
-import { User } from "@/src/models/User";
+import { UserModel } from "@/src/models/User";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/src/app/api/auth/[...nextauth]/route"; // Adjust path if needed
+import { authOptions } from "@/src/app/api/auth/[...nextauth]/option"; // Adjust path if needed
 import dbConnect from "@/src/lib/dbConnect";
 
 export async function GET(request: Request) {
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
 
         // 3. Find employees who report to this manager
         // (If it's an admin, you might eventually bypass this to see all, but we will stick to manager scope for now)
-        const reportingEmployees = await User.find({ managerId: session.user._id }).select('_id');
+        const reportingEmployees = await UserModel.find({ managerId: session.user._id }).select('_id');
         const employeeIds = reportingEmployees.map(emp => emp._id);
 
         // 4. Fetch Submitted Goals for those specific employees
