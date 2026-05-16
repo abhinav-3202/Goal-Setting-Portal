@@ -1,87 +1,20 @@
-import mongoose,{Schema} from "mongoose";
+import mongoose, { Schema, model, Document, Types } from 'mongoose';
 
-const sessionSchema = new Schema({
-    sessionId: {
-        type: String,
-        required: true,
-    },
-    title: {
-        type: String,
-        default: "New Chat",
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
-    messagesSent: {          
-        type: Number,
-        default: 0,
-    }
-})
+export interface IUser extends Document {
+  name: string;
+  email: string;
+  role: 'employee' | 'manager' | 'admin';
+  managerId?: Types.ObjectId | null; 
+  department: string;
+  createdAt: Date;
+}
 
-const userSchema = new Schema({
-    email: {
-        type: String,
-        required: true,
-        unique: true,
-    },
-    username: {
-        type: String,
-        required: true,
-        unique: true,
-        lowercase: true,
-        trim: true, 
-    },
-    password: {
-        type: String,
-        required: function () {
-        return this.authProvider === "credentials";
-        },
-    },
-    isVerified:{
-        type:Boolean,
-        default:false,
-    },
-    verifyCodeExpiry:{
-        type:Date,
-    },
-    verifyCode:{
-        type:String,
-    },
-    name:{
-        type:String,
-    },
-    age:{
-        type:Number,
-    },
-    weight:{
-        type:Number,
-    },
-    gender:{
-        type:String,
-        enum:["male", "female", "other"],
-        default:"male",
-    },
-    role: {
-        type: String,
-        enum: ["user", "doctor"],
-        default: "user"
-    },
-    specialization: {
-        type: String
-    },
-    sessions: {
-        type: [sessionSchema],  
-        default: []
-    },
-    authProvider:{
-        type:String,
-        enum:["credentials","google"],
-        required:true,
-    },
-})
+const UserSchema = new Schema<IUser>({
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true, index: true },
+  role: { type: String, enum: ['employee', 'manager', 'admin'], default: 'employee', required: true },
+  managerId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+  department: { type: String, required: true }
+}, { timestamps: true });
 
-
-const UserModel =  mongoose.models.User || mongoose.model('User', userSchema);
-
-export default UserModel;
+export const User = mongoose.models.User || model<IUser>('User', UserSchema);
