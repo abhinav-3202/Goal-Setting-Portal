@@ -104,7 +104,7 @@ export default function CheckInForm({ goals, goalSheetId, activeQuarter, existin
             borderRadius: '12px', padding: '12px 16px', marginBottom: '16px',
           }}>
             <p style={{ color: '#1e40af', fontSize: '13px', fontWeight: 500, margin: 0 }}>
-              📋 Viewing {selectedQuarter} — this quarter's window is closed. Data is read-only.
+              📋 Viewing {selectedQuarter} — {"this quarter's window is closed. Data is read-only."}
             </p>
           </div>
         )}

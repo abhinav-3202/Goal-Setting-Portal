@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { Loader2, RefreshCw } from 'lucide-react'
-import CompletionDashboard from '@/src/components/reports/CompletionDashboard'
+import CompletionDashboard from '@/components/reports/CompletionDashboard'
 
 type Quarter = 'Q1' | 'Q2' | 'Q3' | 'Q4'
 const QUARTERS: Quarter[] = ['Q1', 'Q2', 'Q3', 'Q4']

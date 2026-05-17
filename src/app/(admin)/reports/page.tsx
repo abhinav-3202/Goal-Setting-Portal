@@ -18,6 +18,14 @@ export default function AdminReportsPage() {
   const [loadingAchievement, setLoadingAchievement] = useState(true)
   const [loadingAudit, setLoadingAudit] = useState(false)
 
+  // ✅ 1. Intercept tab clicks to trigger the loader synchronously in the event loop instead of an effect
+  const handleTabChange = (tab: Tab) => {
+    if (tab === 'audit') {
+      setLoadingAudit(true)
+    }
+    setActiveTab(tab)
+  }
+
   useEffect(() => {
     fetch('/api/reports/achievement')
       .then((r) => r.json())
@@ -26,17 +34,16 @@ export default function AdminReportsPage() {
       .finally(() => setLoadingAchievement(false));
   }, []);
 
+  // ✅ 2. Removed the synchronous loading state modifier from here
   useEffect(() => {
     if (activeTab === 'audit') {
-        setLoadingAudit(true);
         fetch('/api/audit')
           .then((r) => r.json())
           .then((d) => setAuditData(Array.isArray(d) ? d : []))
           .catch(console.error)
           .finally(() => setLoadingAudit(false))
     }
-}, [activeTab])
-
+  }, [activeTab])
 
   const toggleQuarter = (q: Quarter) => {
     setSelectedQuarters((prev) =>
@@ -46,6 +53,12 @@ export default function AdminReportsPage() {
 
   return (
     <div style={{ background: '#f0faf8', minHeight: '100vh', fontFamily: 'Georgia, serif' }}>
+      {/* Added utility rule so Loader2 actually spins around */}
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .animate-spin { animation: spin 1s linear infinite; }
+      `}</style>
+
       <div style={{
         background: 'radial-gradient(circle, rgba(13,148,136,0.09) 0%, transparent 70%)',
         position: 'fixed', top: 0, left: 0, width: '500px', height: '500px',
@@ -86,7 +99,7 @@ export default function AdminReportsPage() {
           ] as { key: Tab; label: string }[]).map((tab) => (
             <button
               key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => handleTabChange(tab.key)} // ✅ 3. Using the cleaner interaction pipeline wrapper
               style={{
                 padding: '9px 20px', borderRadius: '10px', border: 'none',
                 background: activeTab === tab.key
@@ -145,7 +158,7 @@ export default function AdminReportsPage() {
             }}>
               {loadingAchievement ? (
                 <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-                  <Loader2 size={28} color="#0d9488" style={{ margin: '0 auto 10px', display: 'block', animation: 'spin 1s linear infinite' }} />
+                  <Loader2 size={28} color="#0d9488" className="animate-spin" style={{ margin: '0 auto 10px', display: 'block' }} />
                   <p style={{ color: '#4a7c6f', fontSize: '13px' }}>Loading achievement data…</p>
                 </div>
               ) : (
@@ -163,7 +176,7 @@ export default function AdminReportsPage() {
           }}>
             {loadingAudit ? (
               <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-                <Loader2 size={28} color="#0d9488" style={{ margin: '0 auto 10px', display: 'block', animation: 'spin 1s linear infinite' }} />
+                <Loader2 size={28} color="#0d9488" className="animate-spin" style={{ margin: '0 auto 10px', display: 'block' }} />
                 <p style={{ color: '#4a7c6f', fontSize: '13px' }}>Loading audit log…</p>
               </div>
             ) : (

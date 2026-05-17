@@ -1,10 +1,11 @@
 'use client'
-import { useEffect, useState } from 'react'
+
+import { useEffect, useState, useCallback } from 'react'
 import { Loader2, TrendingUp } from 'lucide-react'
-import QoQTrendChart from '@/src/components/analytics/QoQTrendChart'
-import CompletionHeatmap from '@/src/components/analytics/CompletionHeatmap'
-import GoalDistributionChart from '@/src/components/analytics/GoalDistributionChart'
-import ManagerEffectivenessTable from '@/src/components/analytics/ManagerEffectivenessTable'
+import QoQTrendChart from '@/components/analytics/QoqTrendChart'
+import CompletionHeatmap from '@/components/analytics/CompletionHeatmap'
+import GoalDistributionChart from '@/components/analytics/GoalDistributionChart'
+import ManagerEffectivenessTable from '@/components/analytics/ManagerEffectivenessTable'
 import AnalyticsFilterBar from '@/components/analytics/AnalyticsFilterBar'
 
 interface Filters {
@@ -12,6 +13,21 @@ interface Filters {
   quarter: string
   managerId: string
 }
+
+const SectionCard = ({ title, loading, children }: { title: string; loading: boolean; children: React.ReactNode }) => (
+  <div style={{
+    background: 'white', borderRadius: '24px', border: '1px solid #c9ebe4',
+    boxShadow: '0 4px 24px rgba(13,148,136,0.07)', padding: '24px 28px',
+  }}>
+    <h2 style={{ color: '#0f4c3a', fontWeight: 700, fontSize: '17px', margin: '0 0 20px' }}>{title}</h2>
+    {loading ? (
+      <div style={{ textAlign: 'center', padding: '48px 20px' }}>
+        <Loader2 size={26} color="#0d9488" className="animate-spin" style={{ margin: '0 auto 10px', display: 'block' }} />
+        <p style={{ color: '#4a7c6f', fontSize: '13px' }}>Loading…</p>
+      </div>
+    ) : children}
+  </div>
+)
 
 export default function AdminAnalyticsPage() {
   const [filters, setFilters] = useState<Filters>({ department: 'all', quarter: 'all', managerId: 'all' })
@@ -26,68 +42,62 @@ export default function AdminAnalyticsPage() {
   const [loadingDist, setLoadingDist] = useState(true)
   const [loadingEffect, setLoadingEffect] = useState(true)
 
-  const buildQuery = (base: string) => {
-    const params = new URLSearchParams()
-    if (filters.department !== 'all') params.set('department', filters.department)
-    if (filters.quarter !== 'all') params.set('quarter', filters.quarter)
-    if (filters.managerId !== 'all') params.set('managerId', filters.managerId)
-    const qs = params.toString()
-    return qs ? `${base}?${qs}` : base
+  // ✅ Intercept filter changes to set loading states cleanly before requests fire
+  const handleFilterChange = (newFilters: Filters) => {
+    setLoadingTrends(true)
+    setLoadingHeatmap(true)
+    setLoadingDist(true)
+    setLoadingEffect(true)
+    setFilters(newFilters)
   }
 
+  const buildQuery = useCallback((base: string, currentFilters: Filters) => {
+    const params = new URLSearchParams()
+    if (currentFilters.department !== 'all') params.set('department', currentFilters.department)
+    if (currentFilters.quarter !== 'all') params.set('quarter', currentFilters.quarter)
+    if (currentFilters.managerId !== 'all') params.set('managerId', currentFilters.managerId)
+    const qs = params.toString()
+    return qs ? `${base}?${qs}` : base
+  }, [])
+
   useEffect(() => {
-    setLoadingTrends(true)
-    fetch(buildQuery('/api/analytics/trends'))
-      .then((r) => r.json())
+    const controller = new AbortController()
+    const { signal } = controller
+
+    const fetchWithSignal = (url: string) => fetch(url, { signal }).then((r) => r.json())
+
+    fetchWithSignal(buildQuery('/api/analytics/trends', filters))
       .then((d) => setTrendsData(Array.isArray(d) ? d : []))
-      .catch(console.error)
+      .catch((err) => { if (err.name !== 'AbortError') console.error(err) })
       .finally(() => setLoadingTrends(false))
-  }, [filters])
 
-  useEffect(() => {
-    setLoadingHeatmap(true)
-    fetch(buildQuery('/api/analytics/heatmap'))
-      .then((r) => r.json())
+    fetchWithSignal(buildQuery('/api/analytics/heatmap', filters))
       .then((d) => setHeatmapData(Array.isArray(d) ? d : []))
-      .catch(console.error)
+      .catch((err) => { if (err.name !== 'AbortError') console.error(err) })
       .finally(() => setLoadingHeatmap(false))
-  }, [filters])
 
-  useEffect(() => {
-    setLoadingDist(true)
-    fetch(buildQuery('/api/analytics/distribution'))
-      .then((r) => r.json())
+    fetchWithSignal(buildQuery('/api/analytics/distribution', filters))
       .then(setDistributionData)
-      .catch(console.error)
+      .catch((err) => { if (err.name !== 'AbortError') console.error(err) })
       .finally(() => setLoadingDist(false))
-  }, [filters])
 
-  useEffect(() => {
-    setLoadingEffect(true)
-    fetch(buildQuery('/api/analytics/manager-effectiveness'))
-      .then((r) => r.json())
+    fetchWithSignal(buildQuery('/api/analytics/manager-effectiveness', filters))
       .then((d) => setEffectivenessData(Array.isArray(d) ? d : []))
-      .catch(console.error)
+      .catch((err) => { if (err.name !== 'AbortError') console.error(err) })
       .finally(() => setLoadingEffect(false))
-  }, [filters])
 
-  const SectionCard = ({ title, loading, children }: { title: string; loading: boolean; children: React.ReactNode }) => (
-    <div style={{
-      background: 'white', borderRadius: '24px', border: '1px solid #c9ebe4',
-      boxShadow: '0 4px 24px rgba(13,148,136,0.07)', padding: '24px 28px',
-    }}>
-      <h2 style={{ color: '#0f4c3a', fontWeight: 700, fontSize: '17px', margin: '0 0 20px' }}>{title}</h2>
-      {loading ? (
-        <div style={{ textAlign: 'center', padding: '48px 20px' }}>
-          <Loader2 size={26} color="#0d9488" style={{ margin: '0 auto 10px', display: 'block', animation: 'spin 1s linear infinite' }} />
-          <p style={{ color: '#4a7c6f', fontSize: '13px' }}>Loading…</p>
-        </div>
-      ) : children}
-    </div>
-  )
+    return () => {
+      controller.abort()
+    }
+  }, [filters, buildQuery])
 
   return (
     <div style={{ background: '#f0faf8', minHeight: '100vh', fontFamily: 'Georgia, serif' }}>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .animate-spin { animation: spin 1s linear infinite; }
+      `}</style>
+
       <div style={{
         background: 'radial-gradient(circle, rgba(13,148,136,0.09) 0%, transparent 70%)',
         position: 'fixed', top: 0, right: 0, width: '500px', height: '500px',
@@ -119,7 +129,8 @@ export default function AdminAnalyticsPage() {
           boxShadow: '0 2px 10px rgba(13,148,136,0.05)',
           padding: '16px 22px', marginBottom: '24px',
         }}>
-          <AnalyticsFilterBar filters={filters} onChange={setFilters} />
+          {/* ✅ Pass the customized state handler instead of raw setFilters */}
+          <AnalyticsFilterBar filters={filters} onChange={handleFilterChange} />
         </div>
 
         {/* Grid: Trends + Heatmap */}

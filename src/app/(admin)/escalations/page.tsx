@@ -1,8 +1,8 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { Loader2, AlertTriangle } from 'lucide-react'
-import EscalationLogTable from '@/src/components/escalations/EscalationLogTable'
-import EscalationRuleForm from '@/src/components/escalations/EscalationRuleForm'
+import EscalationLogTable from '@/components/escalations/EscalationsLogTable'
+import EscalationRuleForm from '@/components/escalations/EscalationsRuleForm'
 
 type Tab = 'active' | 'rules'
 
@@ -20,7 +20,15 @@ export default function AdminEscalationsPage() {
   const [loadingEscalations, setLoadingEscalations] = useState(true)
   const [loadingRules, setLoadingRules] = useState(false)
 
-  // Fetch escalation logs
+  // ✅ Clean interaction handler: set the state and the loader at the exact same time
+  const handleTabChange = (tab: Tab) => {
+    if (tab === 'rules') {
+      setLoadingRules(true)
+    }
+    setActiveTab(tab)
+  }
+
+  // Fetch escalation logs on initial layout mount
   useEffect(() => {
     fetch('/api/escalations')
       .then((r) => r.json())
@@ -37,10 +45,10 @@ export default function AdminEscalationsPage() {
       .finally(() => setLoadingEscalations(false))
   }, [])
 
-  // Fetch rules when tab switches
+  // Fetch rules when tab switches (Synchronous state updater completely removed)
   useEffect(() => {
     if (activeTab !== 'rules') return
-    setLoadingRules(true)
+
     fetch('/api/escalations/rules')
       .then((r) => r.json())
       .then((d) => setRules(Array.isArray(d) ? d : []))
@@ -60,6 +68,12 @@ export default function AdminEscalationsPage() {
 
   return (
     <div style={{ background: '#f0faf8', minHeight: '100vh', fontFamily: 'Georgia, serif' }}>
+      {/* Utility rule injection for functional rotating icons */}
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .animate-spin { animation: spin 1s linear infinite; }
+      `}</style>
+
       <div style={{
         background: 'radial-gradient(circle, rgba(13,148,136,0.09) 0%, transparent 70%)',
         position: 'fixed', top: 0, left: 0, width: '500px', height: '500px',
@@ -141,7 +155,7 @@ export default function AdminEscalationsPage() {
           ] as { key: Tab; label: string }[]).map((tab) => (
             <button
               key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => handleTabChange(tab.key)} // ✅ Using the wrapper clean handler
               style={{
                 padding: '9px 20px', borderRadius: '10px', border: 'none',
                 background: activeTab === tab.key
@@ -176,7 +190,7 @@ export default function AdminEscalationsPage() {
           }}>
             {loadingEscalations ? (
               <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-                <Loader2 size={28} color="#0d9488" style={{ margin: '0 auto 10px', display: 'block', animation: 'spin 1s linear infinite' }} />
+                <Loader2 size={28} color="#0d9488" className="animate-spin" style={{ margin: '0 auto 10px', display: 'block' }} />
                 <p style={{ color: '#4a7c6f', fontSize: '13px' }}>Loading escalations…</p>
               </div>
             ) : (
@@ -203,8 +217,8 @@ export default function AdminEscalationsPage() {
                 How Escalation Rules Work
               </p>
               <ul style={{ color: '#92400e', fontSize: '12px', margin: 0, paddingLeft: '16px', lineHeight: 1.8 }}>
-                <li><strong>Goal Not Submitted</strong> — fires if employee hasn't submitted N days after cycle open</li>
-                <li><strong>Goal Not Approved</strong> — fires if manager hasn't approved N days after submission</li>
+                <li><strong>Goal Not Submitted</strong> {"— fires if employee hasn't submitted N days after cycle open"}</li>
+                <li><strong>Goal Not Approved</strong> {"— fires if manager hasn't approved N days after submission"}</li>
                 <li><strong>Check-in Missed</strong> — fires if check-in not logged N days into an open quarter window</li>
                 <li>Escalations auto-run <strong>daily at 8:00 AM</strong> via a scheduled cron job</li>
               </ul>
@@ -212,7 +226,7 @@ export default function AdminEscalationsPage() {
 
             {loadingRules ? (
               <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-                <Loader2 size={26} color="#0d9488" style={{ margin: '0 auto 10px', display: 'block', animation: 'spin 1s linear infinite' }} />
+                <Loader2 size={26} color="#0d9488" className="animate-spin" style={{ margin: '0 auto 10px', display: 'block' }} />
                 <p style={{ color: '#4a7c6f', fontSize: '13px' }}>Loading rules…</p>
               </div>
             ) : (

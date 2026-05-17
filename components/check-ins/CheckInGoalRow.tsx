@@ -3,7 +3,7 @@ import { useFormContext } from 'react-hook-form'
 import { FormField, FormControl, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import ScoreIndicator from './ScoreIndicator'
-import { computeScore } from '@/src/lib/scoreEngine'
+import { computeScore } from '@/lib/scoreEngine'
 
 interface Goal {
   _id: string
