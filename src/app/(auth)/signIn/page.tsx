@@ -3,14 +3,14 @@ import { Suspense, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import * as z from "zod";
 import { zodResolver } from '@hookform/resolvers/zod'
-import { signInSchema } from '@/src/schemas/singInSchema'
+import { signInSchema } from '@/src/schemas/signInSchema'
 import { useRouter } from 'next/navigation';
 import { FormField, FormControl, Form, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
 import { toast } from "sonner"
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Loader2, HeartPulse } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { signIn } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 
@@ -32,7 +32,7 @@ const SignInContent = () => {
   const form = useForm<z.infer<typeof signInSchema>>({
     resolver: zodResolver(signInSchema),
     defaultValues: {
-      identifier: "",
+      email: "",
       password: ""
     }
   })
@@ -42,40 +42,22 @@ const SignInContent = () => {
     try {
       const result = await signIn("credentials", {
         redirect: false,
-        identifier: data.identifier,
+        email: data.email,
         password: data.password,
-        // callbackUrl: "/Home"  // directly setting this true was the error which was forcing without checking the cookies 
       });
 
-      //
       if (result?.error) {
         toast.error(result.error, { description: "Login Error" });
+        setIsSubmitting(false);
         return;
       }
 
       if (result?.ok) {
-        // hard redirect — cookie is fully set before middleware runs
-        // middleware then reads token.role correctly
-        // doctor → redirected to /doctor/dashboard by middleware 
-        // patient → stays on /Home
-        // router.replace("/Home")  +++++ this hard redirect is not suitable 
-        router.replace("/Home");
+        // Full page reload to ensure cookie is set before middleware runs
+        router.replace("/Home") ;
       }
-
-      /*router.replace("/Home")
-      → client side navigation (instant)
-      → cookie may not be fully saved yet
-      → middleware reads empty token → no role 
-
-      window.location.href = "/Home"
-      → full page reload
-      → browser waits, sends all cookies
-      → middleware reads token.role = "doctor" 
-      → redirects to /doctor/dashboard 
-      */
     } catch (error) {
       toast.error("Something went wrong");
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -95,24 +77,19 @@ const SignInContent = () => {
 
         {/* ── LOGO + HEADER ── */}
         <div className="text-center">
-          <div className="flex justify-center mb-4">
-            <div style={{ background: "linear-gradient(135deg, #0d9488, #06b6d4)" }} className="p-3 rounded-2xl">
-              <HeartPulse className="h-8 w-8 text-white" />
-            </div>
-          </div>
           <h1 style={{ color: "#0f4c3a", fontWeight: 800, lineHeight: 1.2 }}
             className="text-3xl mb-2">
-            Sign In to{" "}
+            Welcome to{" "}
             <span style={{
               background: "linear-gradient(135deg, #0d9488, #06b6d4)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent"
             }}>
-              MedAssist
+              Goal Portal
             </span>
           </h1>
           <p style={{ color: "#4a7c6f" }} className="text-sm">
-            Sign in to start your journey with MedAssist
+            Sign in to access your goal management dashboard
           </p>
         </div>
 
@@ -121,17 +98,18 @@ const SignInContent = () => {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
 
             <FormField
-              name="identifier"
+              name="email"
               control={form.control}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel style={{ color: "#0f4c3a", fontWeight: 600 }}>
-                    Username or Email
+                    Email
                   </FormLabel>
                   <FormControl>
                     <Input
                       {...field}
-                      placeholder='Enter username or email'
+                      placeholder='you@example.com'
+                      type="email"
                       style={{ borderColor: "#c9ebe4", color: "#0f4c3a" }}
                     />
                   </FormControl>

@@ -60,7 +60,7 @@ function NewGoalContent() {
 
         {/* Back button */}
         <button
-          onClick={() => router.push('/goals')}
+          onClick={() => router.push('/employee/goals')}
           style={{
             display: 'flex', alignItems: 'center', gap: '6px',
             background: 'none', border: 'none', color: '#4a7c6f',

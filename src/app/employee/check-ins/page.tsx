@@ -81,7 +81,7 @@ export default function EmployeeCheckInsPage() {
       <div style={{ background: '#f0faf8', minHeight: '100vh', fontFamily: 'Georgia, serif' }}>
         <div style={{ maxWidth: '780px', margin: '0 auto', padding: '40px 24px' }}>
           <button
-            onClick={() => router.push('/goals')}
+            onClick={() => router.push('/employee/goals')}
             style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: '#4a7c6f', fontSize: '13px', fontWeight: 600, cursor: 'pointer', marginBottom: '24px', fontFamily: 'Georgia, serif', padding: 0 }}
           >
             <ArrowLeft size={15} /> Back to Goals
@@ -103,7 +103,7 @@ export default function EmployeeCheckInsPage() {
               Make sure to submit your goal sheet first.
             </p>
             <button
-              onClick={() => router.push('/goals')}
+              onClick={() => router.push('/employee/goals')}
               style={{
                 background: 'linear-gradient(135deg, #0d9488, #06b6d4)',
                 color: 'white', border: 'none', borderRadius: '12px',

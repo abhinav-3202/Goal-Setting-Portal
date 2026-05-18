@@ -195,7 +195,7 @@ export default function GoalSheetForm({
 
       toast.success('Goals submitted for manager approval!')
 
-      router.push('/goals')
+      router.push('/employee/goals')
     } catch (err: any) {
       toast.error(err.message || 'Something went wrong')
     } finally {

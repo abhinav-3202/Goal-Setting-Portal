@@ -55,7 +55,7 @@ export default function EmployeeGoalsPage() {
             </p>
           </div>
           <button
-            onClick={() => router.push('/goals/new')}
+            onClick={() => router.push('/employee/goals/new')}
             style={{
               display: 'flex', alignItems: 'center', gap: '8px',
               background: 'linear-gradient(135deg, #0d9488, #06b6d4)',
@@ -101,7 +101,7 @@ export default function EmployeeGoalsPage() {
               Create your first goal sheet for the current cycle
             </p>
             <button
-              onClick={() => router.push('/goals/new')}
+              onClick={() => router.push('/employee/goals/new')}
               style={{
                 background: 'linear-gradient(135deg, #0d9488, #06b6d4)',
                 color: 'white', border: 'none', borderRadius: '12px',
@@ -141,8 +141,8 @@ export default function EmployeeGoalsPage() {
                 }}
                 onClick={() =>
                   sheet.status === 'draft'
-                    ? router.push(`/goals/new?edit=${sheet._id}`)
-                    : router.push(`/goals/${sheet._id}`)
+                    ? router.push(`/employee/goals/new?edit=${sheet._id}`)
+                    : router.push(`/employee/goals/${sheet._id}`)
                 }
               >
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>

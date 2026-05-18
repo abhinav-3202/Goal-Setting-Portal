@@ -1,96 +1,67 @@
 'use client'
 import { zodResolver } from "@hookform/resolvers/zod"
-// import { React, useEffect, useState } from "react";
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import Link from "next/link"
-import { useEffect, useState } from "react"
-import { useDebounceCallback } from 'usehooks-ts'
+import { useState } from "react"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { signUpSchema } from "@/src/schemas/signUpSchema"
 import axios, { AxiosError } from "axios"
 import { ApiResponse } from "@/src/types/ApiResponse"
 import { Form, FormField, FormItem, FormControl, FormLabel, FormMessage } from "@/components/ui/form"
-import { Input  } from "@/components/ui/input"
-import { Loader2, HeartPulse } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Loader2 } from "lucide-react"
 import { signIn } from "next-auth/react"
 
+const SignUpPage = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const router = useRouter()
 
-// if we check username availability on every keystroke, it will make too many API calls and can cause performance issues. So we will use debounce to limit the number of API calls made while checking username availability.
-//  Debounce will delay the API call until the user has stopped typing for a certain amount of time (e.g., 500 milliseconds). This way, we can check username availability only when the user has finished typing, rather than on every keystroke.
-const page = () => {
-  const [username, setUsername] = useState(""); //  By default username is empty string
-  const [usernameMessage, setUsernameMessage] = useState("") // state to store message related to username available or not 
-  const [isCheckingUsername, setIsCheckingUsername] = useState(false) // state to indicate whether we are currently checking username availability
-  const [isSubmitting, setIsSubmitting] = useState(false) // state to indicate whether the form is currently being submitted
-
-  const debounced = useDebounceCallback(setUsername, 300)  // 300 is the dealy time of cheking 
-  const router = useRouter();
-
-  // zod implementation for form validation
   const form = useForm<z.infer<typeof signUpSchema>>({
-    resolver: zodResolver(signUpSchema), // validation schema for form validation using zod
+    resolver: zodResolver(signUpSchema),
     defaultValues: {
-      username: "",
       email: "",
       password: "",
+      role: "employee"
     }
   })
 
-  useEffect(() => {
-    const checkUsernameUnique = async () => {
-      if (username.trim() !== "") {
-        setIsCheckingUsername(true);
-        setUsernameMessage("");
-        try {
-          const response = await axios.get(`/api/check-username-unique?username=${username}`);
-          console.log("checking response", response);
-          //let message = response.data.message;  and give this message to setUsernameMessage
-          setUsernameMessage(response.data.message)
-        } catch (error) {
-          const axiosError = error as AxiosError<ApiResponse>;
-          setUsernameMessage(
-            axiosError.response?.data.message ?? "Error checking username"
-          )
-        } finally {
-          setIsCheckingUsername(false);
-        }
-      }
-    }
-    checkUsernameUnique();
-  }, [username]) // username ke change hone pe hi checkUsernameUnique function call hoga
-
-  const onSubmit = async (data: z.infer<typeof signUpSchema>) => {  // onSubmit me data milta h jo handleSubmit se aata h form se
+  const onSubmit = async (data: z.infer<typeof signUpSchema>) => {
     setIsSubmitting(true);
     console.log("form data", data);
     try {
       const response = await axios.post('/api/signUp', {
         ...data,
-        authProvider: "credentials" // kyuki hum credentials ke through signup kar rahe hai, google ke through nhi kar rahe hai isliye authProvider me credentials pass karna hoga taki backend me pata chal sake ki user kis tarah se signup kar raha hai
+        authProvider: "credentials"
       });
 
-      // response check karna padega ki hua bhi hai ya nhi 
-      if (response.data.success) {  //  bug fix: success check added
-        toast.success(
-          "Success",
-          { description: response.data.message },
-        )
-        router.replace(`/verify/${data.username}`) // ek new page bana ke us page pe redirect karna hai jaha pe user apna email verify kar sake, url se username le lenge 
+      if (response.data.success) {
+        toast.success("Success", { description: response.data.message })
+        
+        // Auto sign-in the user after successful signup
+        const signInResult = await signIn("credentials", {
+          redirect: false,
+          email: data.email,
+          password: data.password,
+        });
+
+        if (signInResult?.ok) {
+          // Full page reload to ensure cookie is set before middleware runs
+          router.replace("/Home") ;
+        } else {
+          // If auto sign-in fails, redirect to sign-in page
+          router.replace("/signIn");
+        }
       } else {
         toast.error("Signup failed", { description: response.data.message })
+        setIsSubmitting(false);
       }
-
-      setIsSubmitting(false);
     } catch (error) {
-      console.error("Error in sig nup of user", error);
+      console.error("Error in signup of user", error);
       const axiosError = error as AxiosError<ApiResponse>;
       const errorMessage = axiosError.response?.data.message
-      toast.error(
-        "Signup failed",
-        { description: errorMessage },
-        // {variant: "destructive"}
-      )
+      toast.error("Signup failed", { description: errorMessage })
       setIsSubmitting(false);
     }
   }
@@ -110,56 +81,24 @@ const page = () => {
 
         {/* ── LOGO + HEADER ── */}
         <div className="text-center">
-          <div className="flex justify-center mb-4">
-            <div style={{ background: "linear-gradient(135deg, #0d9488, #06b6d4)" }} className="p-3 rounded-2xl">
-              <HeartPulse className="h-8 w-8 text-white" />
-            </div>
-          </div>
           <h1 style={{ color: "#0f4c3a", fontWeight: 800, lineHeight: 1.2 }} className="text-3xl mb-2">
-            Sign Up to{" "}
+            Join{" "}
             <span style={{
               background: "linear-gradient(135deg, #0d9488, #06b6d4)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent"
             }}>
-              MedAssist
+              Goal Portal
             </span>
           </h1>
           <p style={{ color: "#4a7c6f" }} className="text-sm">
-            Signup to start your journey with MedAssist
+            Create your account to get started
           </p>
         </div>
 
         {/* ── FORM ── */}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-
-            {/* username field */}
-            <FormField
-              name="username"
-              control={form.control}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel style={{ color: "#0f4c3a", fontWeight: 600 }}>Username</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder='username'
-                      style={{ borderColor: "#c9ebe4", color: "#0f4c3a" }}
-                      onChange={(e) => {
-                        field.onChange(e); // react hook form ke field onChange ko call karna hoga taki form state update ho sake
-                        debounced(e.target.value);
-                      }}
-                    />
-                  </FormControl>
-                  {/* username checking loader */}
-                  {isCheckingUsername && <Loader2 className="animate-spin h-4 w-4" style={{ color: "#0d9488" }} />}
-                  {/* username availability message */}
-                  <p className={`text-sm font-medium ${usernameMessage === "Username is available" ? 'text-green-600' : 'text-red-500'}`}>
-                    {usernameMessage}
-                  </p>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             {/* email field */}
             <FormField
@@ -169,12 +108,10 @@ const page = () => {
                 <FormItem>
                   <FormLabel style={{ color: "#0f4c3a", fontWeight: 600 }}>Email</FormLabel>
                   <FormControl>
-                    {/* username me liya tha becasue we want to check username availability but email me aisa nhi hai isliye email placeholder me email likha h */}
-                    <Input {...field} placeholder='email'
+                    <Input {...field} placeholder='you@example.com' type="email"
                       style={{ borderColor: "#c9ebe4", color: "#0f4c3a" }}
                     />
                   </FormControl>
-                  <p style={{ color: "#4a7c6f" }} className='text-sm'>We will send you a verification code</p>
                   <FormMessage />
                 </FormItem>
               )}
@@ -188,10 +125,40 @@ const page = () => {
                 <FormItem>
                   <FormLabel style={{ color: "#0f4c3a", fontWeight: 600 }}>Password</FormLabel>
                   <FormControl>
-                    {/* username me liya tha becasue we want to check username availability but email me aisa nhi hai isliye email placeholder me email likha h */}
-                    <Input {...field} placeholder='password' type='password'
+                    <Input {...field} placeholder='Password' type='password'
                       style={{ borderColor: "#c9ebe4", color: "#0f4c3a" }}
                     />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* role field */}
+            <FormField
+              name="role"
+              control={form.control}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel style={{ color: "#0f4c3a", fontWeight: 600 }}>Select Your Role</FormLabel>
+                  <FormControl>
+                    <select
+                      {...field}
+                      style={{
+                        borderColor: "#c9ebe4",
+                        color: "#0f4c3a",
+                        border: "1px solid #c9ebe4",
+                        borderRadius: "8px",
+                        padding: "10px 12px",
+                        width: "100%",
+                        fontFamily: "Georgia, serif",
+                        fontSize: "14px"
+                      }}
+                    >
+                      <option value="employee">Employee</option>
+                      <option value="manager">Manager</option>
+                      <option value="admin">Admin</option>
+                    </select>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -266,4 +233,4 @@ const page = () => {
   )
 }
 
-export default page
+export default SignUpPage;

@@ -13,33 +13,23 @@ export const authOptions : NextAuthOptions = {
             id:"credentials",        // like this only how many credentials we want directly come on page , so behind the seen next-auth will create a html form which accept values as required
             name:"credentials",
             credentials:{  // auto-generated form   ....... NextAuth auto generates an HTML form
-                identifier :{label : "email", type: "text", placeholder:"Enter your email"},
+                email :{label : "email", type: "text", placeholder:"Enter your email"},
                 password:{label:"Password", type:"password", placeholder:"Enter your password"}
             },
 
-            // for accessing fiellds the syntax is credentials.identifier.emaail
-            // credentials.identifier.password 
             async authorize(credentials:any):Promise<any>{ // This function does only one thing ... Are these credentials valid ...If yes return user if NO throw error
-                // await dbConnect();
                 try {
                      await dbConnect();
                     const user = await UserModel.findOne({
-                        $or:[  /// find by either of these fields 
-                            {email:credentials.identifier},
-                            {username:credentials.identifier},
-                        ]
+                        email: credentials.email
                     })
 
                     if(!user){
-                        throw new Error("User not found with this email or username");
+                        throw new Error("Invalid email or password");
                     }
                     
                     if(user.authProvider !== "credentials"){
                         throw new Error(`Account registered with ${user.authProvider}`)
-                    }
-
-                    if(!user.isVerified){
-                        throw new Error("Please verify your email to login");
                     }
 
                     const isPasswordCorrect = await bcrypt.compare(
@@ -49,11 +39,12 @@ export const authOptions : NextAuthOptions = {
                         return {
                             _id: user._id.toString(),
                             email: user.email,
-                            username: user.username,
                             isVerified: user.isVerified,
+                            role: user.role,
+                            name: user.name,
                         };
                     }else{
-                        throw new Error("Incorrect password")
+                        throw new Error("Invalid email or password")
                     }
                 } catch (error:any) {
                     throw new Error(error.message || "Error during authentication");
@@ -85,19 +76,24 @@ export const authOptions : NextAuthOptions = {
                 await dbConnect();
                 const dbUser = await UserModel.findById(token._id);
                 if (dbUser) {
-                    // console.log("UPDATE TRIGGER - dbUser.name:", dbUser.name, "dbUser.role:", dbUser.role)
-                    // token.isNewUser = !dbUser.name  // re-read from DB only when called 
                     token.role = dbUser.role
-                    // token.specialization = dbUser.specialization
                 }
                 return token;
             }   
 
             // only runs on initial sign in
             if(user){
-                await dbConnect(); // this we are using because extra google login field
-
-                let dbUser = await UserModel.findOne({email:user.email}) // this is for google login because google se login karne pe user create hota h but usme isVerified aur isAcceptingMessages field nahi h to wo error dega isliye dbUser me se ye fields nikal ke token me daal diye
+                // For credentials login, user object already has all fields including role
+                if(user.role){
+                    token._id = user._id
+                    token.role = user.role
+                    token.isNewUser = !user.name
+                    return token
+                }
+                
+                // For Google OAuth login, query database
+                await dbConnect();
+                let dbUser = await UserModel.findOne({email:user.email})
 
                 if(!dbUser){
                     // new Google user — create account
@@ -114,28 +110,19 @@ export const authOptions : NextAuthOptions = {
                     }
                     dbUser = await UserModel.create({
                         email: user.email,
-                        // username,
-                        // isVerified:true,
-                        authProvider:"google",
+                        username: username,
+                        name: user.name || user.email.split("@")[0],
+                        password: "", // No password for OAuth users
+                        isVerified: true, // Google users are pre-verified
+                        role: "employee",
+                        department: "",
+                        authProvider: "google",
                     })
-                    // token.isNewUser = true //
                 }
-                // console.log("SIGN IN - dbUser.name:", dbUser.name, "dbUser.role:", dbUser.role);
-                // else {
-                //     token.isNewUser = false  // existing user → go to /dashboard
-                // }
             
                 token._id = dbUser._id?.toString()
-                // token.isVerified = dbUser.isVerified
-                // token.isAcceptingMessage = dbUser.isAcceptingMessage
-                // token.username = dbUser.username
                 token.role = dbUser.role
-                // token.specialization = dbUser.specialization
-                token.isNewUser = !dbUser.name  //  if name is empty → isNewUser = true
-                                        // if name is filled (after info) → isNewUser = false
-                                        //// remove this line from info/page.tsx onSubmit
-                                        //await update({ isNewUser: false });  // ❌ no longer needed
-                // console.log("TOKEN AFTER - role:", token.role, "isNewUser:", token.isNewUser)
+                token.isNewUser = !dbUser.name
             }
             return token;
         },

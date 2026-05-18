@@ -58,7 +58,7 @@ export default function GoalSheetViewPage() {
           <p style={{ color: '#e11d48', fontWeight: 700, fontSize: '16px', marginBottom: '8px' }}>Something went wrong</p>
           <p style={{ color: '#4a7c6f', fontSize: '13px', marginBottom: '20px' }}>{error}</p>
           <button
-            onClick={() => router.push('/goals')}
+            onClick={() => router.push('/employee/goals')}
             style={{
               background: 'linear-gradient(135deg, #0d9488, #06b6d4)',
               color: 'white', border: 'none', borderRadius: '10px',
@@ -85,7 +85,7 @@ export default function GoalSheetViewPage() {
 
         {/* Back */}
         <button
-          onClick={() => router.push('/goals')}
+          onClick={() => router.push('/employee/goals')}
           style={{
             display: 'flex', alignItems: 'center', gap: '6px',
             background: 'none', border: 'none', color: '#4a7c6f',
@@ -167,7 +167,7 @@ export default function GoalSheetViewPage() {
         {/* Go to check-ins CTA when locked */}
         {sheet.status === 'locked' && (
           <button
-            onClick={() => router.push('/check-ins')}
+            onClick={() => router.push('/employee/check-ins')}
             style={{
               marginTop: '16px', width: '100%', padding: '13px',
               background: 'linear-gradient(135deg, #0d9488, #06b6d4)',
