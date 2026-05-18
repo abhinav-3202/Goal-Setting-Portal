@@ -4,13 +4,12 @@ export const goalSchema = z.object({
   thrustArea: z.string().min(1, 'Thrust area is required'),
   title: z.string().min(3, 'Title must be at least 3 characters'),
   description: z.string().optional(),
-  uom: z.enum(['min', 'max', 'timeline', 'zero'], {
-    required_error: 'Unit of measurement is required',
-    invalid_type_error: 'Invalid UoM type',
-  }),
+  uom: z
+    .enum(['min', 'max', 'timeline', 'zero'])
+    .refine(val => !!val, { message: 'Unit of measurement is required' }),
   target: z.string().min(1, 'Target is required'),
   weightage: z.coerce
-    .number({ invalid_type_error: 'Weightage must be a number' })
+    .number()
     .min(10, 'Minimum weightage per goal is 10%')
     .max(100, 'Weightage cannot exceed 100%'),
   isShared: z.boolean().optional().default(false),
@@ -47,7 +46,7 @@ export function parseGoalSheet(body: unknown): {
   const result = goalSheetSchema.safeParse(body)
   if (result.success) return { success: true, data: result.data }
 
-  const firstError = result.error.errors[0]
+  const firstError = result.error.issues[0]
   return {
     success: false,
     error: firstError?.message ?? 'Invalid goal sheet data',

@@ -1,10 +1,48 @@
 import { Goal } from "@/src/models/Goal";
+import { GoalSheet } from "@/src/models/GoalSheet";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/src/app/api/auth/[...nextauth]/option";
 import dbConnect from "@/src/lib/dbConnect";
 
-export async function PATCH(request: Request, { params }: { params: { goalSheetId: string } }) {
+// GET - Fetch goals for a goal sheet
+export async function GET(request: Request, { params }: { params: Promise<{ goalSheetId: string }> }) {
     try {
+        const { goalSheetId } = await params;
+        await dbConnect();
+        const session = await getServerSession(authOptions);
+
+        if (!session || !session.user) {
+            return Response.json({ success: false, message: "Unauthorized." }, { status: 401 });
+        }
+
+        // Verify goalSheet exists and belongs to user
+        const goalSheet = await GoalSheet.findOne({ _id: goalSheetId, employeeId: session.user._id });
+        if (!goalSheet) {
+            return Response.json({ success: false, message: "Goal sheet not found." }, { status: 404 });
+        }
+
+        // Get all goals for this sheet
+        const goals = await Goal.find({
+            employeeId: session.user._id,
+            cycleId: goalSheet.cycleId
+        });
+
+        return Response.json({
+            success: true,
+            goals,
+            goalSheet
+        }, { status: 200 });
+
+    } catch (error) {
+        console.error("GOAL_SHEET_GET_ERROR:", error);
+        return Response.json({ success: false, message: "Error fetching goal sheet." }, { status: 500 });
+    }
+}
+
+// PATCH - Update all goals for a goal sheet
+export async function PATCH(request: Request, { params }: { params: Promise<{ goalSheetId: string }> }) {
+    try {
+        const { goalSheetId } = await params;
         await dbConnect();
         const session = await getServerSession(authOptions);
 
@@ -13,88 +51,61 @@ export async function PATCH(request: Request, { params }: { params: { goalSheetI
         }
 
         const body = await request.json();
-        const goalId = params.goalSheetId; 
+        const { goals } = body;
 
-        // 1. Find the exact goal and ensure it belongs to this employee
-        const existingGoal = await Goal.findOne({ _id: goalId, employeeId: session.user._id });
-
-        if (!existingGoal) {
-            return Response.json({ success: false, message: "Goal not found." }, { status: 404 });
+        // Verify goalSheet exists and belongs to user
+        const goalSheet = await GoalSheet.findOne({ _id: goalSheetId, employeeId: session.user._id });
+        if (!goalSheet) {
+            return Response.json({ success: false, message: "Goal sheet not found." }, { status: 404 });
         }
 
-        // 2. Prevent editing if it's already locked, submitted, or approved
-        if (existingGoal.status !== "draft") {
-            return Response.json({ 
-                success: false, 
-                message: "You cannot edit a goal that has already been submitted or approved." 
+        // Only allow updating draft sheets
+        if (goalSheet.status !== "draft") {
+            return Response.json({
+                success: false,
+                message: "You can only edit goal sheets in draft status."
             }, { status: 403 });
         }
 
-        // 3. Handle Admin-Shared Goals logic
-        // Employees can ONLY update weightage on shared goals
-        let updateData = { ...body };
-        if (existingGoal.isShared) {
-            updateData = { weightage: body.weightage }; 
+        if (!goals || !Array.isArray(goals) || goals.length === 0) {
+            return Response.json({
+                success: false,
+                message: "At least one goal is required."
+            }, { status: 400 });
         }
 
-        const updatedGoal = await Goal.findByIdAndUpdate(
-            goalId, 
-            { $set: updateData }, 
-            { new: true, runValidators: true }
+        // Delete old goals
+        await Goal.deleteMany({
+            employeeId: session.user._id,
+            cycleId: goalSheet.cycleId
+        });
+
+        // Create new goals
+        const createdGoals = await Goal.insertMany(
+            goals.map((goal: any) => ({
+                employeeId: session.user._id,
+                cycleId: goalSheet.cycleId,
+                thrustArea: goal.thrustArea,
+                title: goal.title,
+                description: goal.description || '',
+                uom: goal.uom,
+                target: goal.target,
+                weightage: goal.weightage,
+                status: 'draft',
+                isShared: goal.isShared || false,
+                sharedFrom: goal.sharedFrom || null
+            }))
         );
 
         return Response.json({
             success: true,
-            message: "Goal updated successfully.",
-            goal: updatedGoal
+            message: "Goal sheet updated successfully.",
+            _id: goalSheet._id,
+            goals: createdGoals
         }, { status: 200 });
 
     } catch (error) {
-        console.error("GOAL_PATCH_ERROR:", error);
-        return Response.json({ success: false, message: "Error updating goal." }, { status: 500 });
-    }
-}
-
-export async function DELETE(request: Request, { params }: { params: { goalSheetId: string } }) {
-    try {
-        await dbConnect();
-        const session = await getServerSession(authOptions);
-
-        if (!session || !session.user) {
-            return Response.json({ success: false, message: "Unauthorized." }, { status: 401 });
-        }
-
-        const goalId = params.goalSheetId;
-
-        const existingGoal = await Goal.findOne({ _id: goalId, employeeId: session.user._id });
-
-        if (!existingGoal) {
-            return Response.json({ success: false, message: "Goal not found." }, { status: 404 });
-        }
-
-        if (existingGoal.status !== "draft") {
-            return Response.json({ 
-                success: false, 
-                message: "Cannot delete a goal that is not in draft status." 
-            }, { status: 403 });
-        }
-
-        if (existingGoal.isShared) {
-            return Response.json({ 
-                success: false, 
-                message: "You cannot delete a mandatory shared corporate goal." 
-            }, { status: 403 });
-        }
-
-        await Goal.findByIdAndDelete(goalId);
-
-        return Response.json({
-            success: true,
-            message: "Goal deleted successfully."
-        }, { status: 200 });
-
-    } catch (error) {
-        console.error("GOAL_DELETE_ERROR:", error);
-        return Response.json({ success: false, message: "Error deleting goal." }, { status: 500 });
+        console.error("GOAL_SHEET_PATCH_ERROR:", error);
+        return Response.json({ success: false, message: "Error updating goal sheet." }, { status: 500 });
     }
 }

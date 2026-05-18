@@ -1,7 +1,9 @@
 import { Goal } from "@/src/models/Goal";
+import { GoalSheet } from "@/src/models/GoalSheet";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/src/app/api/auth/[...nextauth]/option";
 import dbConnect from "@/src/lib/dbConnect";
+import { Types } from "mongoose";
 
 export async function POST(request: Request) {
     try {
@@ -25,19 +27,37 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { cycleId } = body;
+        const { goalSheetId } = body;
 
-        if (!cycleId) {
+        if (!goalSheetId) {
             return Response.json({
                 success: false,
-                message: "Missing cycleId parameter."
+                message: "Missing goalSheetId parameter."
             }, { status: 400 });
         }
 
-        // 3. Fetch all current draft goals for this employee in this cycle
+        // 3. Get the goal sheet
+        const goalSheet = await GoalSheet.findById(goalSheetId);
+        if (!goalSheet) {
+            return Response.json({
+                success: false,
+                message: "Goal sheet not found."
+            }, { status: 404 });
+        }
+
+        // 4. Verify ownership
+        const userId = session.user._id || (session.user as any).id;
+        if (!userId || goalSheet.employeeId.toString() !== userId.toString()) {
+            return Response.json({
+                success: false,
+                message: "Unauthorized. This is not your goal sheet."
+            }, { status: 403 });
+        }
+
+        // 5. Fetch all current draft goals for this sheet
         const draftGoals = await Goal.find({
-            employeeId: session.user._id,
-            cycleId: cycleId,
+            employeeId: userId,
+            cycleId: goalSheet.cycleId,
             status: "draft"
         });
 
@@ -48,7 +68,7 @@ export async function POST(request: Request) {
             }, { status: 404 });
         }
 
-        // 4. CRITICAL VALIDATION: Check Maximum Goals Rule
+        // 6. CRITICAL VALIDATION: Check Maximum Goals Rule
         if (draftGoals.length > 8) {
             return Response.json({
                 success: false,
@@ -56,7 +76,7 @@ export async function POST(request: Request) {
             }, { status: 400 });
         }
 
-        // 5. CRITICAL VALIDATION: Verify 100% Weightage Sum
+        // 7. CRITICAL VALIDATION: Verify 100% Weightage Sum
         const totalWeightage = draftGoals.reduce((sum, goal) => sum + goal.weightage, 0);
         
         if (totalWeightage !== 100) {
@@ -66,15 +86,20 @@ export async function POST(request: Request) {
             }, { status: 400 });
         }
 
-        // 6. Update all fetched drafts to 'submitted'
-        const updateResult = await Goal.updateMany(
-            { employeeId: session.user._id, cycleId: cycleId, status: "draft" },
+        // 8. Update all fetched drafts to 'submitted'
+        await Goal.updateMany(
+            { employeeId: session.user._id, cycleId: goalSheet.cycleId, status: "draft" },
             { $set: { status: "submitted" } }
         );
 
+        // 9. Update goal sheet status to submitted
+        goalSheet.status = "submitted";
+        goalSheet.submittedAt = new Date();
+        await goalSheet.save();
+
         return Response.json({
             success: true,
-            message: `Successfully submitted ${updateResult.modifiedCount} goals for manager approval.`
+            message: `Successfully submitted ${draftGoals.length} goals for manager approval.`
         }, { status: 200 });
 
     } catch (error) {

@@ -86,9 +86,9 @@ export const authOptions : NextAuthOptions = {
                 const dbUser = await UserModel.findById(token._id);
                 if (dbUser) {
                     // console.log("UPDATE TRIGGER - dbUser.name:", dbUser.name, "dbUser.role:", dbUser.role)
-                    token.isNewUser = !dbUser.name  // re-read from DB only when called 
+                    // token.isNewUser = !dbUser.name  // re-read from DB only when called 
                     token.role = dbUser.role
-                    token.specialization = dbUser.specialization
+                    // token.specialization = dbUser.specialization
                 }
                 return token;
             }   
@@ -114,8 +114,8 @@ export const authOptions : NextAuthOptions = {
                     }
                     dbUser = await UserModel.create({
                         email: user.email,
-                        username,
-                        isVerified:true,
+                        // username,
+                        // isVerified:true,
                         authProvider:"google",
                     })
                     // token.isNewUser = true //
@@ -126,11 +126,11 @@ export const authOptions : NextAuthOptions = {
                 // }
             
                 token._id = dbUser._id?.toString()
-                token.isVerified = dbUser.isVerified
+                // token.isVerified = dbUser.isVerified
                 // token.isAcceptingMessage = dbUser.isAcceptingMessage
-                token.username = dbUser.username
+                // token.username = dbUser.username
                 token.role = dbUser.role
-                token.specialization = dbUser.specialization
+                // token.specialization = dbUser.specialization
                 token.isNewUser = !dbUser.name  //  if name is empty → isNewUser = true
                                         // if name is filled (after info) → isNewUser = false
                                         //// remove this line from info/page.tsx onSubmit
@@ -142,12 +142,12 @@ export const authOptions : NextAuthOptions = {
         async session({ session, token }) {
             if(token){
                 session.user._id = token._id
-                session.user.isVerified = token.isVerified
+                // session.user.isVerified = token.isVerified
                 // session.user.isAcceptingMessage = token.isAcceptingMessage
-                session.user.username = token.username
-                session.user.isNewUser = token.isNewUser
+                // session.user.username = token.username
+                // session.user.isNewUser = token.isNewUser
                 session.user.role = token.role
-                session.user.specialization = token.specialization
+                // session.user.specialization = token.specialization
             }
             return session
         },

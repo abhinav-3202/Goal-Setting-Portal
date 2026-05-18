@@ -24,7 +24,7 @@ export default function EmployeeGoalsPage() {
   useEffect(() => {
     fetch('/api/goals')
       .then((r) => r.json())
-      .then(setSheets)
+      .then((data) => setSheets(data.data || []))
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [])

@@ -1,6 +1,8 @@
 import { Goal } from "@/src/models/Goal";
+import { Cycle } from "@/src/models/Cycle";
+import { GoalSheet } from "@/src/models/GoalSheet";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/src/app/api/auth/[...nextauth]/option"; // Adjust path if needed
+import { authOptions } from "@/src/app/api/auth/[...nextauth]/option";
 import dbConnect from "@/src/lib/dbConnect";
 
 export async function GET(request: Request) {
@@ -16,34 +18,86 @@ export async function GET(request: Request) {
             }, { status: 401 });
         }
 
-        // 2. Extract Cycle ID from Query Params
-        const { searchParams } = new URL(request.url);
-        const cycleId = searchParams.get("cycleId");
-
-        if (!cycleId) {
-            return Response.json({
-                success: false,
-                message: "Missing cycleId parameter."
-            }, { status: 400 });
-        }
-
-        // 3. Fetch Goals belonging ONLY to this employee for the given cycle
-        const goals = await Goal.find({
-            employeeId: session.user._id, // Secured by session, not trusting client input
-            cycleId: cycleId
-        }).sort({ createdAt: 1 });
+        // 2. Get all goal sheets for this employee with aggregated data
+        const goalSheets = await GoalSheet.aggregate([
+            // Match only current user's sheets
+            { $match: { employeeId: session.user._id } },
+            
+            // Lookup cycle information
+            {
+                $lookup: {
+                    from: 'cycles',
+                    localField: 'cycleId',
+                    foreignField: '_id',
+                    as: 'cycle'
+                }
+            },
+            
+            // Unwind cycle array (convert from array to single doc)
+            { $unwind: '$cycle' },
+            
+            // Lookup goals for this sheet
+            {
+                $lookup: {
+                    from: 'goals',
+                    let: { sheetEmployeeId: '$employeeId', sheetCycleId: '$cycleId' },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $and: [
+                                        { $eq: ['$employeeId', '$$sheetEmployeeId'] },
+                                        { $eq: ['$cycleId', '$$sheetCycleId'] }
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    as: 'goals'
+                }
+            },
+            
+            // Compute goal count and total weightage
+            {
+                $addFields: {
+                    goalCount: { $size: '$goals' },
+                    totalWeightage: { $sum: '$goals.weightage' },
+                    cycleName: '$cycle.name'
+                }
+            },
+            
+            // Project the fields we need
+            {
+                $project: {
+                    _id: 1,
+                    status: 1,
+                    cycleName: 1,
+                    goalCount: 1,
+                    totalWeightage: 1,
+                    submittedAt: 1,
+                    approvedAt: 1,
+                    lockedAt: 1,
+                    returnComment: 1,
+                    createdAt: 1,
+                    updatedAt: 1
+                }
+            },
+            
+            // Sort by createdAt descending (newest first)
+            { $sort: { createdAt: -1 } }
+        ]);
 
         return Response.json({
             success: true,
-            message: "Goals fetched successfully.",
-            goals
+            message: "Goal sheets fetched successfully.",
+            data: goalSheets
         }, { status: 200 });
 
     } catch (error) {
         console.error("GOALS_GET_ERROR:", error);
         return Response.json({
             success: false,
-            message: "An error occurred while retrieving your goals."
+            message: "An error occurred while retrieving your goal sheets."
         }, { status: 500 });
     }
 }
@@ -58,7 +112,7 @@ export async function POST(request: Request) {
             return Response.json({
                 success: false,
                 message: "Unauthorized. Please sign in first."
-            }, { status: 401 });
+            }, { status: 403 });
         }
 
         // 2. Role Authorization
@@ -71,41 +125,70 @@ export async function POST(request: Request) {
 
         // 3. Parse and Validate Body
         const body = await request.json();
-        const { cycleId, thrustArea, title, description, uom, target, weightage } = body;
+        const { cycleId, goals } = body;
 
-        if (!cycleId || !thrustArea || !title || !uom || !target || !weightage) {
+        if (!cycleId) {
             return Response.json({
                 success: false,
-                message: "Missing required goal fields."
+                message: "Missing cycleId."
             }, { status: 400 });
         }
 
-        // 4. Create New Draft Goal
-        const newGoal = await Goal.create({
-            employeeId: session.user._id, // Enforce current user
-            cycleId,
-            thrustArea,
-            title,
-            description,
-            uom,
-            target,
-            weightage,
-            status: "draft", // Always starts as draft
-            isShared: false,
-            sharedFrom: null
+        if (!goals || !Array.isArray(goals) || goals.length === 0) {
+            return Response.json({
+                success: false,
+                message: "At least one goal is required."
+            }, { status: 400 });
+        }
+
+        // 4. Create or Get GoalSheet
+        let goalSheet = await GoalSheet.findOne({
+            employeeId: session.user._id,
+            cycleId
         });
+
+        if (!goalSheet) {
+            goalSheet = await GoalSheet.create({
+                employeeId: session.user._id,
+                cycleId,
+                status: 'draft'
+            });
+        }
+
+        // 5. Delete old goals for this sheet and create new ones
+        await Goal.deleteMany({
+            employeeId: session.user._id,
+            cycleId
+        });
+
+        const createdGoals = await Goal.insertMany(
+            goals.map((goal: any) => ({
+                employeeId: session.user._id,
+                cycleId,
+                thrustArea: goal.thrustArea,
+                title: goal.title,
+                description: goal.description || '',
+                uom: goal.uom,
+                target: goal.target,
+                weightage: goal.weightage,
+                status: 'draft',
+                isShared: goal.isShared || false,
+                sharedFrom: goal.sharedFrom || null
+            }))
+        );
 
         return Response.json({
             success: true,
-            message: "Goal drafted successfully.",
-            goal: newGoal
+            message: "Goal sheet saved successfully.",
+            _id: goalSheet._id,
+            goals: createdGoals
         }, { status: 201 });
 
     } catch (error) {
         console.error("GOALS_POST_ERROR:", error);
         return Response.json({
             success: false,
-            message: "An error occurred while creating your goal."
+            message: "An error occurred while saving your goal sheet."
         }, { status: 500 });
     }
 }

@@ -12,12 +12,16 @@ function NewGoalContent() {
   const [defaultValues, setDefaultValues] = useState<any>(null)
   const [loading, setLoading] = useState(!!editId)
   const [cycleName, setCycleName] = useState<string>('')
+  const [cycleId, setCycleId] = useState<string>('')
 
   useEffect(() => {
-    // Fetch active cycle name
+    // Fetch active cycle
     fetch('/api/cycles/active')
       .then((r) => r.json())
-      .then((data) => setCycleName(data?.name ?? 'Current Cycle'))
+      .then((data) => {
+        setCycleName(data?.name ?? 'Current Cycle')
+        setCycleId(data?._id ?? '')
+      })
       .catch(() => setCycleName('Current Cycle'))
   }, [])
 
@@ -125,6 +129,7 @@ function NewGoalContent() {
         }}>
           <GoalSheetForm
             defaultValues={defaultValues}
+            cycleId={cycleId}
             goalSheetId={editId ?? undefined}
             isEdit={!!editId}
           />

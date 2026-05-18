@@ -1,5 +1,5 @@
-import dbConnect from '@/src/lib/db'
-import Cycle from '@/src/models/Cycle'
+import dbConnect from '@/src/lib/dbConnect'
+import {Cycle} from '@/src/models/Cycle'
 
 export type CyclePhase = 'goal_setting' | 'Q1' | 'Q2' | 'Q3' | 'Q4'
 
