@@ -39,7 +39,7 @@ export const authOptions : NextAuthOptions = {
                         return {
                             _id: user._id.toString(),
                             email: user.email,
-                            isVerified: user.isVerified,
+                            // isVerified: user.isVerified,
                             role: user.role,
                             name: user.name,
                         };
@@ -113,9 +113,9 @@ export const authOptions : NextAuthOptions = {
                         username: username,
                         name: user.name || user.email.split("@")[0],
                         password: "", // No password for OAuth users
-                        isVerified: true, // Google users are pre-verified
+                        // isVerified: true, // Google users are pre-verified
                         role: "employee",
-                        department: "",
+                        // department: "",
                         authProvider: "google",
                     })
                 }

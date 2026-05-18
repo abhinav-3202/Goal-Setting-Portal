@@ -6,9 +6,9 @@ export interface IUser extends Document {
   password: string;
   email: string;
   role: 'employee' | 'manager' | 'admin';
-  managerId?: Types.ObjectId | null; 
-  department: string;
-  isVerified?: boolean; // Add email verification field
+  // managerId?: Types.ObjectId | null; 
+  department: 'HR'|'Finance' | 'Logistics';
+  // isVerified?: boolean; // Add email verification field
   createdAt: Date;
   authProvider: 'credentials' | 'google';
 }
@@ -19,14 +19,14 @@ const UserSchema = new Schema<IUser>({
   password:{type:String, required:true},
   email: { type: String, required: true, unique: true, index: true },
   role: { type: String, enum: ['employee', 'manager', 'admin'], default: 'employee', required: true },
-  managerId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
-  department: { type: String, default: "" },
+  // managerId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+  department: { type: String, enum:['HR','Finance','Logistics'] },
   authProvider:{
         type:String,
         enum:["credentials","google"],
         required:true,
     },
-  isVerified: { type: Boolean, default: false }
+  // isVerified: { type: Boolean, default: false }
 }, { timestamps: true });
 
 export const UserModel = mongoose.models.User || model<IUser>('User', UserSchema);

@@ -21,9 +21,12 @@ const SignUpPage = () => {
   const form = useForm<z.infer<typeof signUpSchema>>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
+      username: "",
+      name: "",
       email: "",
       password: "",
-      role: "employee"
+      role: "employee",
+      department: "HR"
     }
   })
 
@@ -47,10 +50,8 @@ const SignUpPage = () => {
         });
 
         if (signInResult?.ok) {
-          // Full page reload to ensure cookie is set before middleware runs
-          router.replace("/Home") ;
+          router.replace("/Home");
         } else {
-          // If auto sign-in fails, redirect to sign-in page
           router.replace("/signIn");
         }
       } else {
@@ -60,14 +61,14 @@ const SignUpPage = () => {
     } catch (error) {
       console.error("Error in signup of user", error);
       const axiosError = error as AxiosError<ApiResponse>;
-      const errorMessage = axiosError.response?.data.message
+      const errorMessage = axiosError.response?.data.message || "An unexpected error occurred."
       toast.error("Signup failed", { description: errorMessage })
       setIsSubmitting(false);
     }
   }
 
   return (
-    <div className="flex justify-center items-center min-h-screen"
+    <div className="flex justify-center items-center min-h-screen py-10"
       style={{ background: "#f0faf8", fontFamily: "Georgia, serif" }}>
 
       {/* decorative blobs */}
@@ -76,7 +77,7 @@ const SignUpPage = () => {
       <div style={{ background: "radial-gradient(circle, rgba(251,113,133,0.08) 0%, transparent 70%)" }}
         className="fixed bottom-0 right-0 w-80 h-80 rounded-full pointer-events-none" />
 
-      <div className="w-full max-w-md p-8 space-y-6 relative z-10"
+      <div className="w-full max-w-md p-8 space-y-6 relative z-10 my-auto"
         style={{ background: "white", borderRadius: "24px", border: "1px solid #c9ebe4", boxShadow: "0 8px 40px rgba(13,148,136,0.08)" }}>
 
         {/* ── LOGO + HEADER ── */}
@@ -99,6 +100,40 @@ const SignUpPage = () => {
         {/* ── FORM ── */}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+
+            {/* name field */}
+            <FormField
+              name="name"
+              control={form.control}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel style={{ color: "#0f4c3a", fontWeight: 600 }}>Full Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder='John Doe' type="text"
+                      style={{ borderColor: "#c9ebe4", color: "#0f4c3a" }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* username field */}
+            <FormField
+              name="username"
+              control={form.control}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel style={{ color: "#0f4c3a", fontWeight: 600 }}>Username</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder='johndoe_12' type="text"
+                      style={{ borderColor: "#c9ebe4", color: "#0f4c3a" }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             {/* email field */}
             <FormField
@@ -158,6 +193,37 @@ const SignUpPage = () => {
                       <option value="employee">Employee</option>
                       <option value="manager">Manager</option>
                       <option value="admin">Admin</option>
+                    </select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* department field */}
+            <FormField
+              name="department"
+              control={form.control}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel style={{ color: "#0f4c3a", fontWeight: 600 }}>Select Department</FormLabel>
+                  <FormControl>
+                    <select
+                      {...field}
+                      style={{
+                        borderColor: "#c9ebe4",
+                        color: "#0f4c3a",
+                        border: "1px solid #c9ebe4",
+                        borderRadius: "8px",
+                        padding: "10px 12px",
+                        width: "100%",
+                        fontFamily: "Georgia, serif",
+                        fontSize: "14px"
+                      }}
+                    >
+                      <option value="HR">HR</option>
+                      <option value="Finance">Finance</option>
+                      <option value="Logistics">Logistics</option>
                     </select>
                   </FormControl>
                   <FormMessage />
