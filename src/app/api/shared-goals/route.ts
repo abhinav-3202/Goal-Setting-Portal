@@ -4,6 +4,38 @@ import { authOptions } from "@/src/app/api/auth/[...nextauth]/option"; // Adjust
 import dbConnect from "@/src/lib/dbConnect";
 import mongoose from "mongoose";
 
+export async function GET(request: Request) {
+    try {
+        await dbConnect();
+        const session = await getServerSession(authOptions);
+
+        if (!session || !session.user) {
+            return Response.json({
+                success: false,
+                message: "Unauthorized"
+            }, { status: 401 });
+        }
+
+        // Get all shared goals assigned to this employee
+        const sharedGoals = await Goal.find({
+            employeeId: session.user._id,
+            isShared: true
+        }).populate("sharedFrom", "name");
+
+        return Response.json({
+            success: true,
+            data: sharedGoals
+        }, { status: 200 });
+
+    } catch (error) {
+        console.error("SHARED_GOALS_GET_ERROR:", error);
+        return Response.json({
+            success: false,
+            message: "An error occurred while fetching shared goals"
+        }, { status: 500 });
+    }
+}
+
 export async function POST(request: Request) {
     try {
         await dbConnect();

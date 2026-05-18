@@ -26,17 +26,17 @@ export async function middleware(request: NextRequest) {
     // 3. Role-based route protection
     const role = token?.role as string;
 
-    // if (pathname.startsWith("/employee") && role !== "employee") {
-    //     return NextResponse.redirect(new URL("/Home", request.url));
-    // }
+    if (pathname.startsWith("/employee") && role !== "employee") {
+        return NextResponse.redirect(new URL("/Home", request.url));
+    }
 
-    // if (pathname.startsWith("/manager") && role !== "manager") {
-    //     return NextResponse.redirect(new URL("/Home", request.url));
-    // }
+    if (pathname.startsWith("/manager") && role !== "manager") {
+        return NextResponse.redirect(new URL("/Home", request.url));
+    }
 
-    // if (pathname.startsWith("/admin") && role !== "admin") {
-    //     return NextResponse.redirect(new URL("/Home", request.url));
-    // }
+    if (pathname.startsWith("/admin") && role !== "admin") {
+        return NextResponse.redirect(new URL("/Home", request.url));
+    }
 
     return NextResponse.next();
 }

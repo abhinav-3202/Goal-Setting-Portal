@@ -1,40 +1,32 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/src/app/api/auth/[...nextauth]/option";
 import dbConnect from "@/src/lib/dbConnect";
-import { CheckIn } from "@/src/models/CheckIn";
-import { Goal } from "@/src/models/Goal";
+import { Cycle } from "@/src/models/Cycle";
 
 export async function GET(request: Request) {
     try {
         await dbConnect();
         const session = await getServerSession(authOptions);
 
-        if (!session || !session.user) {
+        if (!session || !session.user || (session.user as any).role !== "admin") {
             return Response.json({
                 success: false,
                 message: "Unauthorized"
             }, { status: 401 });
         }
 
-        const url = new URL(request.url);
-        const quarter = url.searchParams.get("quarter") || "Q1";
-
-        // Fetch check-ins for the employee in the given quarter
-        const checkIns = await CheckIn.find({
-            employeeId: session.user._id,
-            quarter
-        }).populate("goalId");
+        const cycles = await Cycle.find().sort({ createdAt: -1 });
 
         return Response.json({
             success: true,
-            data: checkIns
+            data: cycles
         }, { status: 200 });
 
     } catch (error) {
-        console.error("CHECK_INS_GET_ERROR:", error);
+        console.error("CYCLES_GET_ERROR:", error);
         return Response.json({
             success: false,
-            message: "An error occurred"
+            message: "An error occurred while fetching cycles"
         }, { status: 500 });
     }
 }
@@ -44,7 +36,7 @@ export async function POST(request: Request) {
         await dbConnect();
         const session = await getServerSession(authOptions);
 
-        if (!session || !session.user) {
+        if (!session || !session.user || (session.user as any).role !== "admin") {
             return Response.json({
                 success: false,
                 message: "Unauthorized"
@@ -52,40 +44,39 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { goalSheetId, quarter, goals } = body;
+        const { name, phase, openDate, closeDate, isActive } = body;
 
-        if (!goalSheetId || !quarter || !Array.isArray(goals)) {
+        if (!name || !phase || !openDate || !closeDate) {
             return Response.json({
                 success: false,
                 message: "Missing required fields"
             }, { status: 400 });
         }
 
-        // Create or update check-in record
-        const checkIn = await CheckIn.findOneAndUpdate(
-            { employeeId: session.user._id, quarter, goalSheetId },
-            {
-                employeeId: session.user._id,
-                quarter,
-                goalSheetId,
-                goals,
-                submittedAt: new Date(),
-                status: "submitted"
-            },
-            { upsert: true, new: true }
-        );
+        // If making this cycle active, deactivate others
+        if (isActive) {
+            await Cycle.updateMany({}, { isActive: false });
+        }
+
+        const cycle = await Cycle.create({
+            name,
+            phase,
+            openDate: new Date(openDate),
+            closeDate: new Date(closeDate),
+            isActive: isActive || false
+        });
 
         return Response.json({
             success: true,
-            message: "Check-in submitted successfully",
-            data: checkIn
+            message: "Cycle created successfully",
+            data: cycle
         }, { status: 201 });
 
     } catch (error) {
-        console.error("CHECK_INS_POST_ERROR:", error);
+        console.error("CYCLES_POST_ERROR:", error);
         return Response.json({
             success: false,
-            message: "An error occurred"
+            message: "An error occurred while creating cycle"
         }, { status: 500 });
     }
 }
