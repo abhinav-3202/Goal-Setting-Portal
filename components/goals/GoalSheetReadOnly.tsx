@@ -7,7 +7,7 @@ interface Goal {
   thrustArea: string
   title: string
   description?: string
-  uom: 'min' | 'max' | 'timeline' | 'zero'
+  uom: 'numeric_min' | 'numeric_max' | 'timeline' | 'zero-based'
   target: string
   weightage: number
   isShared?: boolean
@@ -23,10 +23,10 @@ interface GoalSheetReadOnlyProps {
 }
 
 const UOM_LABELS: Record<string, string> = {
-  min: 'Higher is Better',
-  max: 'Lower is Better',
+  numeric_min: 'Higher is Better',
+  numeric_max: 'Lower is Better',
   timeline: 'Timeline',
-  zero: 'Zero-based',
+  'zero-based': 'Zero-based',
 }
 
 export default function GoalSheetReadOnly({

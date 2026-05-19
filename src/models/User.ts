@@ -6,8 +6,8 @@ export interface IUser extends Document {
   password: string;
   email: string;
   role: 'employee' | 'manager' | 'admin';
-  // managerId?: Types.ObjectId | null; 
-  department: 'HR'|'Finance' | 'Logistics';
+  managerId?: Types.ObjectId | null; 
+  department: string; // Flexible department, allows any organization structure
   // isVerified?: boolean; // Add email verification field
   createdAt: Date;
   authProvider: 'credentials' | 'google';
@@ -19,8 +19,8 @@ const UserSchema = new Schema<IUser>({
   password:{type:String, required:true},
   email: { type: String, required: true, unique: true, index: true },
   role: { type: String, enum: ['employee', 'manager', 'admin'], default: 'employee', required: true },
-  // managerId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
-  department: { type: String, enum:['HR','Finance','Logistics'] },
+  managerId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+  department: { type: String, required: false }, // Flexible department
   authProvider:{
         type:String,
         enum:["credentials","google"],

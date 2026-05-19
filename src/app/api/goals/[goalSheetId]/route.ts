@@ -3,6 +3,7 @@ import { GoalSheet } from "@/src/models/GoalSheet";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/src/app/api/auth/[...nextauth]/option";
 import dbConnect from "@/src/lib/dbConnect";
+import { parseGoalSheet } from "@/lib/validataions/GoalSheet";
 
 // GET - Fetch goals for a goal sheet
 export async function GET(request: Request, { params }: { params: Promise<{ goalSheetId: string }> }) {
@@ -59,6 +60,21 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ go
             return Response.json({ success: false, message: "Goal sheet not found." }, { status: 404 });
         }
 
+        // Prevent editing locked or approved sheets
+        if (goalSheet.status === "locked") {
+            return Response.json({
+                success: false,
+                message: "Goals are locked and cannot be edited. Contact your manager to request changes."
+            }, { status: 403 });
+        }
+
+        if (goalSheet.status === "approved") {
+            return Response.json({
+                success: false,
+                message: "Approved goals cannot be edited. Wait for the next cycle or contact your manager."
+            }, { status: 403 });
+        }
+
         // Only allow updating draft sheets
         if (goalSheet.status !== "draft") {
             return Response.json({
@@ -67,10 +83,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ go
             }, { status: 403 });
         }
 
-        if (!goals || !Array.isArray(goals) || goals.length === 0) {
+        // Use Zod schema to validate goals array
+        const validationResult = parseGoalSheet({ goals });
+        if (!validationResult.success) {
             return Response.json({
                 success: false,
-                message: "At least one goal is required."
+                message: validationResult.error
             }, { status: 400 });
         }
 
@@ -82,7 +100,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ go
 
         // Create new goals
         const createdGoals = await Goal.insertMany(
-            goals.map((goal: any) => ({
+            validationResult.data.goals.map((goal: any) => ({
                 employeeId: session.user._id,
                 cycleId: goalSheet.cycleId,
                 thrustArea: goal.thrustArea,

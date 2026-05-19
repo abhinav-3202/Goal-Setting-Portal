@@ -45,7 +45,7 @@ export default function ScoreIndicator({ score, uom }: ScoreIndicatorProps) {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: '9px', fontWeight: 800, color,
         }}>
-          {uom === 'zero' ? (score === 1 ? '✓' : '✗') : `${pct}%`}
+          {uom === 'zero-based' ? (score === 1 ? '✓' : '✗') : `${pct}%`}
         </span>
       </div>
 
@@ -55,7 +55,7 @@ export default function ScoreIndicator({ score, uom }: ScoreIndicatorProps) {
         borderRadius: '999px', padding: '3px 10px',
         fontSize: '12px', fontWeight: 600, fontFamily: 'Georgia, serif',
       }}>
-        {uom === 'zero'
+        {uom === 'zero-based'
           ? score === 1 ? 'Success' : 'Not Met'
           : pct >= 90 ? 'Excellent'
           : pct >= 70 ? 'On Track'

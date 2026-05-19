@@ -9,7 +9,7 @@ interface Goal {
   _id: string
   title: string
   thrustArea: string
-  uom: 'min' | 'max' | 'timeline' | 'zero'
+  uom: 'numeric_min' | 'numeric_max' | 'timeline' | 'zero-based'
   target: string | number
   weightage: number
 }
@@ -111,7 +111,7 @@ export default function CheckInGoalRow({ index, goal, readOnly = false }: CheckI
                   {...field}
                   disabled={readOnly}
                   type={goal.uom === 'timeline' ? 'date' : 'number'}
-                  placeholder={goal.uom === 'zero' ? '0 for success' : 'Enter actual value'}
+                  placeholder={goal.uom === 'zero-based' ? '0 for success' : 'Enter actual value'}
                   style={{ borderColor: '#c9ebe4', color: '#0f4c3a', background: readOnly ? '#f8fafc' : 'white' }}
                 />
               </FormControl>

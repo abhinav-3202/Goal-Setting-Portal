@@ -5,19 +5,19 @@ export function computeScore(
   deadline?: Date,
   completionDate?: Date
 ): number {
-  if (uom === 'min') {
+  if (uom === 'numeric_min') {
     // Higher is better — e.g. Sales Revenue
     if (target === 0) return 0
     return Math.min(actual / target, 2) // cap at 200% to avoid infinity
   }
 
-  if (uom === 'max') {
+  if (uom === 'numeric_max') {
     // Lower is better — e.g. TAT, Cost
     if (actual === 0) return 1 // perfect score
     return Math.min(target / actual, 2)
   }
 
-  if (uom === 'zero') {
+  if (uom === 'zero-based') {
     // Zero = success — e.g. Safety incidents
     return actual === 0 ? 1 : 0
   }

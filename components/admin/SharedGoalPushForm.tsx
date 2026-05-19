@@ -139,7 +139,7 @@ export default function SharedGoalPushForm() {
               value={form.target}
               onChange={(e) => setForm({ ...form, target: e.target.value })}
               type={form.uom === 'timeline' ? 'date' : 'number'}
-              placeholder={form.uom === 'zero' ? '0' : 'Enter target value'}
+              placeholder={form.uom === 'zero-based' ? '0' : 'Enter target value'}
               style={inputStyle}
             />
           </div>

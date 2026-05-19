@@ -5,7 +5,7 @@ export const goalSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters'),
   description: z.string().optional(),
   uom: z
-    .enum(['min', 'max', 'timeline', 'zero'])
+    .enum(['numeric_min', 'numeric_max', 'timeline', 'zero-based'])
     .refine(val => !!val, { message: 'Unit of measurement is required' }),
   target: z.string().min(1, 'Target is required'),
   weightage: z.coerce

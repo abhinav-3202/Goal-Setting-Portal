@@ -1,7 +1,7 @@
 import dbConnect from '@/src/lib/dbConnect'
 import {Cycle} from '@/src/models/Cycle'
 
-export type CyclePhase = 'goal_setting' | 'Q1' | 'Q2' | 'Q3' | 'Q4'
+export type CyclePhase = 'goal_setting' | 'q1' | 'q2' | 'q3' | 'q4_annual'
 
 export interface ActiveCycleInfo {
   _id: string
@@ -14,8 +14,24 @@ export interface ActiveCycleInfo {
 }
 
 /**
+ * Helper function to convert phase to quarter string
+ * Handles both lowercase (from DB) and uppercase (for UI)
+ */
+function phaseToQuarter(phase: string): string | null {
+  switch(phase.toLowerCase()) {
+    case 'q1': return 'Q1'
+    case 'q2': return 'Q2'
+    case 'q3': return 'Q3'
+    case 'q4_annual': return 'Q4'
+    case 'goal_setting': return null
+    default: return null
+  }
+}
+
+/**
  * Returns the currently active cycle document, or null if no window is open.
  * Call this at the top of every write API route in Phase 1 and Phase 2.
+ * Converts phase to activeQuarter for backwards compatibility.
  */
 export async function getActiveCycle(): Promise<ActiveCycleInfo | null> {
   await dbConnect()
@@ -28,7 +44,19 @@ export async function getActiveCycle(): Promise<ActiveCycleInfo | null> {
   }).lean()
 
   if (!cycle) return null
-  return cycle as unknown as ActiveCycleInfo
+  
+  // Derive activeQuarter from phase
+  const activeQuarter = phaseToQuarter(cycle.phase)
+  
+  return {
+    _id: (cycle._id as any).toString(),
+    name: cycle.name,
+    phase: cycle.phase as CyclePhase,
+    activeQuarter: activeQuarter as 'Q1' | 'Q2' | 'Q3' | 'Q4' | undefined,
+    openDate: cycle.openDate,
+    closeDate: cycle.closeDate,
+    isActive: cycle.isActive,
+  }
 }
 
 /**

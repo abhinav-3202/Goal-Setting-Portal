@@ -4,6 +4,8 @@ import { GoalSheet } from "@/src/models/GoalSheet";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/src/app/api/auth/[...nextauth]/option";
 import dbConnect from "@/src/lib/dbConnect";
+import { assertGoalSettingOpen } from "@/lib/cycleGuard";
+import { parseGoalSheet } from "@/lib/validataions/GoalSheet";
 
 export async function GET(request: Request) {
     try {
@@ -123,7 +125,17 @@ export async function POST(request: Request) {
             }, { status: 403 });
         }
 
-        // 3. Parse and Validate Body
+        // 3. Check if Goal-Setting Window is Open
+        try {
+            await assertGoalSettingOpen();
+        } catch (error: any) {
+            return Response.json({
+                success: false,
+                message: "Goal setting window is not currently open. Please wait for the next goal setting cycle."
+            }, { status: 403 });
+        }
+
+        // 4. Parse and Validate Body with Zod schema
         const body = await request.json();
         const { cycleId, goals } = body;
 
@@ -134,14 +146,16 @@ export async function POST(request: Request) {
             }, { status: 400 });
         }
 
-        if (!goals || !Array.isArray(goals) || goals.length === 0) {
+        // Use Zod schema to validate goals array
+        const validationResult = parseGoalSheet({ goals });
+        if (!validationResult.success) {
             return Response.json({
                 success: false,
-                message: "At least one goal is required."
+                message: validationResult.error
             }, { status: 400 });
         }
 
-        // 4. Create or Get GoalSheet
+        // 5. Create or Get GoalSheet
         let goalSheet = await GoalSheet.findOne({
             employeeId: session.user._id,
             cycleId
@@ -155,14 +169,14 @@ export async function POST(request: Request) {
             });
         }
 
-        // 5. Delete old goals for this sheet and create new ones
+        // 6. Delete old goals for this sheet and create new ones
         await Goal.deleteMany({
             employeeId: session.user._id,
             cycleId
         });
 
         const createdGoals = await Goal.insertMany(
-            goals.map((goal: any) => ({
+            validationResult.data.goals.map((goal: any) => ({
                 employeeId: session.user._id,
                 cycleId,
                 thrustArea: goal.thrustArea,

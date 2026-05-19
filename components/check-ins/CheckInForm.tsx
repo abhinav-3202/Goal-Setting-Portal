@@ -14,7 +14,7 @@ interface Goal {
   _id: string
   title: string
   thrustArea: string
-  uom: 'min' | 'max' | 'timeline' | 'zero'
+  uom: 'numeric_min' | 'numeric_max' | 'timeline' | 'zero-based'
   target: string | number
   weightage: number
 }

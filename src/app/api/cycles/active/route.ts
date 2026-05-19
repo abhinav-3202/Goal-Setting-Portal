@@ -1,11 +1,9 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/src/app/api/auth/[...nextauth]/option";
-import dbConnect from "@/src/lib/dbConnect";
-import { Cycle } from "@/src/models/Cycle";
+import { getActiveCycle } from "@/lib/cycleGuard";
 
 export async function GET(request: Request) {
     try {
-        await dbConnect();
         const session = await getServerSession(authOptions);
 
         if (!session || !session.user) {
@@ -15,8 +13,8 @@ export async function GET(request: Request) {
             }, { status: 401 });
         }
 
-        // Get the active cycle for the current date/phase
-        const activeCycle = await Cycle.findOne({ isActive: true }).sort({ createdAt: -1 });
+        // Get the active cycle using cycleGuard which provides activeQuarter
+        const activeCycle = await getActiveCycle();
 
         if (!activeCycle) {
             return Response.json({
